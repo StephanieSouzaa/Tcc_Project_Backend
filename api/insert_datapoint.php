@@ -3,7 +3,7 @@
 $servername = 'localhost';
 $username = 'cpses_stl5ctav02';
 $password = 'Euroino2026';
-database = 'steph999_Tcc_Project';
+$database = 'steph999_Tcc_Project';
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $database);
