@@ -1,49 +1,95 @@
 <?php
-// Database credentials
-$servername = "localhost";
-$username   = "steph999_2026";
-$password   = "Euroino2026";
-$database   = "steph999_Tcc_Project";
+header("Content-Type: application/json");
 
-// Create connection
-$conn = new mysqli($servername, $username, $password, $database);
+// === DB CONFIG ===
+$conn = new mysqli("localhost", "steph999_2026", "Euroino2026", "steph999_Tcc_Project");
 
-// Check connection
 if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    http_response_code(500);
+    echo json_encode(["error" => "Database connection failed"]);
+    exit;
 }
 
-// Set charset
 $conn->set_charset("utf8mb4");
 
-// Create table
-$sql = "CREATE TABLE IF NOT EXISTS datapoints (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    username VARCHAR(255) NOT NULL
-)";
+// === POST → INSERT ===
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-if (!$conn->query($sql)) {
-    die("Error creating table: " . $conn->error);
-}
-
-// Insert data if POST request
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user'])) {
+    if (!isset($_POST['user']) || empty($_POST['user'])) {
+        http_response_code(400);
+        echo json_encode(["error" => "Missing 'user' parameter"]);
+        exit;
+    }
 
     $stmt = $conn->prepare(
         "INSERT INTO datapoints (username) VALUES (?)"
     );
-
     $stmt->bind_param("s", $_POST['user']);
 
     if ($stmt->execute()) {
-        echo "New record created successfully";
+        echo json_encode([
+            "status" => "ok",
+            "message" => "Datapoint inserted",
+            "id" => $stmt->insert_id
+        ]);
     } else {
-        echo "Error inserting data";
+        http_response_code(500);
+        echo json_encode(["error" => "Insert failed"]);
     }
 
     $stmt->close();
 }
 
+// === GET → LIST ===
+elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+
+    $result = $conn->query(
+        "SELECT id, username, timestamp
+         FROM datapoints
+         ORDER BY timestamp DESC"
+    );
+
+    $data = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+
+    echo json_encode($data);
+}
+
+// === DELETE → DELETE BY ID ===
+elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+
+    // DELETE não tem $_POST, vem pela URL
+    if (!isset($_GET['id'])) {
+        http_response_code(400);
+        echo json_encode(["error" => "Missing 'id' parameter"]);
+        exit;
+    }
+
+    $stmt = $conn->prepare(
+        "DELETE FROM datapoints WHERE id = ?"
+    );
+    $stmt->bind_param("i", $_GET['id']);
+
+    if ($stmt->execute()) {
+        echo json_encode([
+            "status" => "ok",
+            "message" => "Datapoint deleted"
+        ]);
+    } else {
+        http_response_code(500);
+        echo json_encode(["error" => "Delete failed"]);
+    }
+
+    $stmt->close();
+}
+
+// === METHOD NOT ALLOWED ===
+else {
+    http_response_code(405);
+    echo json_encode(["error" => "Method not allowed"]);
+}
+
 $conn->close();
-?>
