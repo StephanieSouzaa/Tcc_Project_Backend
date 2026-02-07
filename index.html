@@ -1,1 +1,91 @@
-Hello from IDE
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Datapoints</title>
+  <style>
+    body { font-family: Arial; margin: 40px; }
+    input, button { padding: 6px; }
+    table { border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background: #eee; }
+  </style>
+</head>
+<body>
+
+<h2>📊 Datapoints</h2>
+
+<input type="text" id="username" placeholder="Username">
+<button onclick="addDatapoint()">Inserir</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>User</th>
+      <th>Timestamp</th>
+      <th>Ação</th>
+    </tr>
+  </thead>
+  <tbody id="table-body"></tbody>
+</table>
+
+<script>
+const API_URL = "/api/datapoints.php";
+
+function loadDatapoints() {
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(data => {
+      const tbody = document.getElementById("table-body");
+      tbody.innerHTML = "";
+
+      data.forEach(item => {
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${item.id}</td>
+          <td>${item.username}</td>
+          <td>${item.timestamp}</td>
+          <td>
+            <button onclick="deleteDatapoint(${item.id})">❌</button>
+          </td>
+        `;
+
+        tbody.appendChild(row);
+      });
+    });
+}
+
+function addDatapoint() {
+  const username = document.getElementById("username").value;
+  if (!username) return alert("Digite um nome");
+
+  const form = new FormData();
+  form.append("user", username);
+
+  fetch(API_URL, {
+    method: "POST",
+    body: form
+  })
+  .then(() => {
+    document.getElementById("username").value = "";
+    loadDatapoints();
+  });
+}
+
+function deleteDatapoint(id) {
+  if (!confirm("Deseja apagar este item?")) return;
+
+  fetch(`${API_URL}?id=${id}`, {
+    method: "DELETE"
+  })
+  .then(() => loadDatapoints());
+}
+
+// Load on start
+loadDatapoints();
+</script>
+
+</body>
+</html>
