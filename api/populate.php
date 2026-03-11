@@ -56,7 +56,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->close();
 }
 
-// === GET → FETCH FIRST ENTRY ===
 elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     if (!isset($_GET['device_id']) || !isset($_GET['gpio_id'])) {
@@ -66,9 +65,9 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     $stmt = $conn->prepare(
-        "SELECT * FROM gpio_states 
-         WHERE device_id = ? AND gpio_id = ? 
-         ORDER BY timestamp DESC 
+        "SELECT * FROM gpio_states
+         WHERE device_id = ? AND gpio_id = ?
+         ORDER BY server_timestamp DESC
          LIMIT 1"
     );
 
@@ -85,5 +84,6 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $stmt->close();
 }
+
 $conn->close();
 ?>
