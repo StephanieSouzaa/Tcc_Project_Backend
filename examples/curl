@@ -1,0 +1,11 @@
+curl -X POST "http://br76.teste.website/~steph999/api/populate.php" \
+--data-urlencode "timestamp=2023-10-01 12:00:00" \
+--data-urlencode "device_id=device1" \
+--data-urlencode "gpio_id=1" \
+--data-urlencode "state=1"
+
+
+
+
+
+{"status":"ok","message":"GPIO state inserted","id":1}
