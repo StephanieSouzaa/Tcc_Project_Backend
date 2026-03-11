@@ -22,6 +22,12 @@ $tableQuery = "CREATE TABLE IF NOT EXISTS gpio_states (
 )";
 $conn->query($tableQuery);
 
+// === CHECK AND ADD SERVER_TIMESTAMP COLUMN ===
+$checkColumn = $conn->query("SHOW COLUMNS FROM gpio_states LIKE 'server_timestamp'");
+if ($checkColumn->num_rows == 0) {
+    $conn->query("ALTER TABLE gpio_states ADD COLUMN server_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP");
+}
+
 // === POST → INSERT ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -62,7 +68,7 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $stmt = $conn->prepare(
         "SELECT * FROM gpio_states 
          WHERE device_id = ? AND gpio_id = ? 
-         ORDER BY timestamp ASC 
+         ORDER BY timestamp DESC 
          LIMIT 1"
     );
 

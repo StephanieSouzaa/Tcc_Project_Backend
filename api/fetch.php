@@ -16,7 +16,7 @@ $conn->set_charset("utf8mb4");
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $result = $conn->query(
-        "SELECT id, timestamp, device_id, gpio_id, state
+        "SELECT id, timestamp, device_id, gpio_id, state, server_timestamp
          FROM gpio_states
          ORDER BY timestamp DESC"
     );
