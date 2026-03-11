@@ -50,11 +50,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->close();
 }
 
-// === METHOD NOT ALLOWED ===
-else {
-    http_response_code(405);
-    echo json_encode(["error" => "Method not allowed"]);
-}
+// === GET → FETCH FIRST ENTRY ===
+elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
+    if (!isset($_GET['device_id']) || !isset($_GET['gpio_id'])) {
+        http_response_code(400);
+        echo json_encode(["error" => "Missing parameters: device_id, gpio_id"]);
+        exit;
+    }
+
+    $stmt = $conn->prepare(
+        "SELECT * FROM gpio_states 
+         WHERE device_id = ? AND gpio_id = ? 
+         ORDER BY timestamp ASC 
+         LIMIT 1"
+    );
+
+    $stmt->bind_param("si", $_GET['device_id'], $_GET['gpio_id']);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+
+    if ($row = $result->fetch_assoc()) {
+        echo json_encode($row);
+    } else {
+        echo json_encode(["message" => "No data found"]);
+    }
+
+    $stmt->close();
+}
 $conn->close();
 ?>
