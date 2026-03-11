@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GPIO State Viewer</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    text-align:center;
+    margin-top:40px;
+}
+
+input{
+    padding:8px;
+    margin:5px;
+}
+
+button{
+    padding:8px 16px;
+}
+
+img{
+    margin-top:20px;
+    width:300px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h2>GPIO State Monitor</h2>
+
+<label>Device ID:</label> <input type="text" id="device_id" value="device1">
+
+<label>GPIO ID:</label> <input type="number" id="gpio_id" value="1">
+
+<button onclick="fetchState()">Fetch</button>
+
+<br>
+
+<img id="gpioImage" src="https://via.placeholder.com/300/00ff00?text=STATE+1">
+
+<p id="status">Waiting...</p>
+
+<script>
+
+const url1 = "https://via.placeholder.com/300/00ff00?text=STATE+1";
+const url2 = "https://via.placeholder.com/300/ff0000?text=STATE+0";
+
+async function fetchState(){
+
+    const device = document.getElementById("device_id").value;
+    const gpio = document.getElementById("gpio_id").value;
+
+    const endpoint = `http://br76.teste.website/~steph999/api/populate.php?device_id=${device}&gpio_id=${gpio}`;
+
+    try{
+
+        const response = await fetch(endpoint);
+        const data = await response.json();
+
+        if(data.state !== undefined){
+
+            document.getElementById("status").innerText =
+                "Timestamp: " + data.timestamp + " | State: " + data.state;
+
+            if(parseInt(data.state) === 1){
+                document.getElementById("gpioImage").src = url1;
+            }
+            else{
+                document.getElementById("gpioImage").src = url2;
+            }
+
+        } else {
+
+            document.getElementById("status").innerText =
+                "No data found";
+
+        }
+
+    }catch(err){
+
+        document.getElementById("status").innerText =
+            "Error fetching data";
+
+        console.error(err);
+    }
+}
+
+// auto refresh every 5 seconds
+setInterval(fetchState, 5000);
+
+</script>
+
+</body>
+</html>
