@@ -25,6 +25,14 @@ img{
     margin-top:20px;
     width:300px;
 }
+
+pre{
+    background:#f4f4f4;
+    padding:10px;
+    width:60%;
+    margin:auto;
+    text-align:left;
+}
 </style>
 
 </head>
@@ -45,6 +53,9 @@ img{
 
 <p id="status">Waiting...</p>
 
+<h3>Server Response</h3>
+<pre id="serverResponse"></pre>
+
 <script>
 
 const url1 = "http://br76.teste.website/~steph999/images/Screenshot%202026-03-11%20194245.png";
@@ -62,6 +73,10 @@ async function fetchState(){
         const response = await fetch(endpoint);
         const data = await response.json();
 
+        // mostrar resposta completa
+        document.getElementById("serverResponse").textContent =
+            JSON.stringify(data, null, 2);
+
         if(data.state !== undefined){
 
             document.getElementById("status").innerText =
@@ -74,11 +89,15 @@ async function fetchState(){
                 document.getElementById("gpioImage").src = url2;
             }
 
-        } else {
-
-            document.getElementById("status").innerText =
-                "No data found";
-
+        } 
+        else if(data.message){
+            document.getElementById("status").innerText = data.message;
+        }
+        else if(data.error){
+            document.getElementById("status").innerText = "Error: " + data.error;
+        }
+        else{
+            document.getElementById("status").innerText = "Unknown server response";
         }
 
     }catch(err){
@@ -90,7 +109,6 @@ async function fetchState(){
     }
 }
 
-// auto refresh every 5 seconds
 setInterval(fetchState, 5000);
 
 </script>
