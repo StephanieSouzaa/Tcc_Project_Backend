@@ -56,6 +56,11 @@ pre{
 <h3>Server Response</h3>
 <pre id="serverResponse"></pre>
 
+<h3>Control GPIO</h3>
+<button id="btnOn">Turn ON</button>
+<button id="btnOff">Turn OFF</button>
+<p id="publishResult"></p>
+
 <script>
 
 const url1 = "http://br76.teste.website/~steph999/images/Screenshot%202026-03-11%20194245.png";
@@ -110,6 +115,33 @@ async function fetchState(){
 }
 
 setInterval(fetchState, 5000);
+
+// Publish controls
+document.getElementById('btnOn').addEventListener('click', () => publishCommand('1'));
+document.getElementById('btnOff').addEventListener('click', () => publishCommand('0'));
+
+async function publishCommand(cmd){
+    const device = document.getElementById('device_id').value;
+    const gpio = document.getElementById('gpio_id').value;
+    const endpoint = `http://br76.teste.website/~steph999/api/publish_mqtt.php`;
+
+    try{
+        const resp = await fetch(endpoint, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: new URLSearchParams({device_id: device, gpio_id: gpio, command: cmd})
+        });
+        const data = await resp.json();
+        if(resp.ok){
+            document.getElementById('publishResult').innerText = 'Published to ' + data.topic;
+        } else {
+            document.getElementById('publishResult').innerText = 'Error: ' + (data.error || JSON.stringify(data));
+        }
+    }catch(err){
+        document.getElementById('publishResult').innerText = 'Network error';
+        console.error(err);
+    }
+}
 
 </script>
 
