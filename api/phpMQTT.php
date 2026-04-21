@@ -8,6 +8,7 @@ class phpMQTT {
     private $username;
     private $password;
     private $keepalive = 10;
+    private $lastError = '';
 
     public function __construct($host, $port, $clientid) {
         $this->address = $host;
@@ -30,7 +31,7 @@ class phpMQTT {
             ]
         ]);
 
-        $this->socket = stream_socket_client(
+        $this->socket = @stream_socket_client(
             "ssl://{$this->address}:{$this->port}",
             $errno,
             $errstr,
@@ -40,7 +41,7 @@ class phpMQTT {
         );
 
         if (!$this->socket) {
-            echo "Erro conexão: $errstr ($errno)";
+            $this->lastError = "Erro conexão: $errstr ($errno)";
             return false;
         }
 
@@ -72,12 +73,12 @@ class phpMQTT {
         $response = fread($this->socket, 4);
 
         if (!$response || strlen($response) < 4) {
-            echo "Sem resposta do broker";
+            $this->lastError = "Sem resposta do broker";
             return false;
         }
 
         if (ord($response[3]) !== 0) {
-            echo "Conexão recusada, código: " . ord($response[3]);
+            $this->lastError = "Conexão recusada, código: " . ord($response[3]);
             return false;
         }
 
@@ -91,7 +92,12 @@ class phpMQTT {
         $packet = $this->str($topic) . $msg;
         $out = chr($header) . $this->len(strlen($packet)) . $packet;
 
-        return fwrite($this->socket, $out) !== false;
+        $written = @fwrite($this->socket, $out);
+        if ($written === false) {
+            $this->lastError = 'Publish write failed';
+            return false;
+        }
+        return true;
     }
 
     public function close() {
@@ -111,5 +117,10 @@ class phpMQTT {
             $string .= chr($digit);
         } while ($len > 0);
         return $string;
+    }
+
+    // retorna a última mensagem de erro (útil para debug sem imprimir diretamente)
+    public function getLastError() {
+        return $this->lastError;
     }
 }

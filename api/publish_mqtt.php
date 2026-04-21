@@ -24,8 +24,9 @@ $client = new phpMQTT($config['host'], $config['port'], $config['client_id']);
 $client->setCredentials($config['username'], $config['password']);
 
 if (!$client->connect()) {
+    $err = method_exists($client, 'getLastError') ? $client->getLastError() : null;
     http_response_code(500);
-    echo json_encode(['error' => 'MQTT connect failed']);
+    echo json_encode(['error' => 'MQTT connect failed', 'reason' => $err]);
     exit;
 }
 
@@ -45,6 +46,7 @@ if ($ok) {
         'payload' => $payload
     ]);
 } else {
+    $err = method_exists($client, 'getLastError') ? $client->getLastError() : null;
     http_response_code(500);
-    echo json_encode(['error' => 'Publish failed']);
+    echo json_encode(['error' => 'Publish failed', 'reason' => $err]);
 }
