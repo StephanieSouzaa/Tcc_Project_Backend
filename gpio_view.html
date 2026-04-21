@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>GPIO State Viewer</title>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
 <style>
 body{
@@ -41,9 +42,11 @@ pre{
 
 <h2>GPIO State Monitor</h2>
 
-<label>Device ID:</label> <input type="text" id="device_id" value="device1">
+<label>Device ID:</label>
+<input type="text" id="device_id" value="device1">
 
-<label>GPIO ID:</label> <input type="number" id="gpio_id" value="1">
+<label>GPIO ID:</label>
+<input type="number" id="gpio_id" value="1">
 
 <button onclick="fetchState()">Fetch</button>
 
@@ -56,7 +59,7 @@ pre{
 <h3>Server Response</h3>
 <pre id="serverResponse"></pre>
 
-<h3>Control GPIO</h3>
+<h3>Control GPIO (MQTT)</h3>
 <button id="btnOn">Turn ON</button>
 <button id="btnOff">Turn OFF</button>
 <p id="publishResult"></p>
@@ -66,6 +69,31 @@ pre{
 const url1 = "http://br76.teste.website/~steph999/images/Screenshot%202026-03-11%20194245.png";
 const url2 = "http://br76.teste.website/~steph999/images/Screenshot%202026-03-11%20194302.png";
 
+//
+// 🔥 MQTT DIRETO NO NAVEGADOR (SOLUÇÃO CORRETA)
+//
+const client = mqtt.connect(
+    "wss://92ca7f6444f944cbae30908602073cd5.s1.eu.hivemq.cloud:8884/mqtt",
+    {
+        username: "Steph",
+        password: "Steph123",
+        reconnectPeriod: 2000
+    }
+);
+
+client.on("connect", () => {
+    console.log("MQTT conectado");
+    document.getElementById("publishResult").innerText = "MQTT conectado";
+});
+
+client.on("error", (err) => {
+    console.error(err);
+    document.getElementById("publishResult").innerText = "Erro MQTT";
+});
+
+//
+// HTTP (continua igual ao seu projeto)
+//
 async function fetchState(){
 
     const device = document.getElementById("device_id").value;
@@ -78,7 +106,6 @@ async function fetchState(){
         const response = await fetch(endpoint);
         const data = await response.json();
 
-        // mostrar resposta completa
         document.getElementById("serverResponse").textContent =
             JSON.stringify(data, null, 2);
 
@@ -89,58 +116,41 @@ async function fetchState(){
 
             if(parseInt(data.state) === 1){
                 document.getElementById("gpioImage").src = url1;
-            }
-            else{
+            } else {
                 document.getElementById("gpioImage").src = url2;
             }
 
-        } 
-        else if(data.message){
+        } else if(data.message){
             document.getElementById("status").innerText = data.message;
-        }
-        else if(data.error){
+        } else if(data.error){
             document.getElementById("status").innerText = "Error: " + data.error;
-        }
-        else{
-            document.getElementById("status").innerText = "Unknown server response";
         }
 
     }catch(err){
-
-        document.getElementById("status").innerText =
-            "Error fetching data";
-
-        console.error(err);
+        document.getElementById("status").innerText = "Erro HTTP";
     }
 }
 
 setInterval(fetchState, 5000);
 
-document.getElementById('btnOn').addEventListener('click', () => publishCommand('1'));
-document.getElementById('btnOff').addEventListener('click', () => publishCommand('0'));
+//
+// 🔥 PUBLICAÇÃO MQTT (SEM PHP)
+//
+function publishCommand(cmd){
 
-async function publishCommand(cmd){
     const device = document.getElementById('device_id').value;
     const gpio = document.getElementById('gpio_id').value;
-    const endpoint = `http://br76.teste.website/~steph999/api/publish_mqtt.php`;
 
-    try{
-        const resp = await fetch(endpoint, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: new URLSearchParams({device_id: device, gpio_id: gpio, command: cmd})
-        });
-        const data = await resp.json();
-        if(resp.ok){
-            document.getElementById('publishResult').innerText = 'Published to ' + data.topic;
-        } else {
-            document.getElementById('publishResult').innerText = 'Error: ' + (data.error || JSON.stringify(data));
-        }
-    }catch(err){
-        document.getElementById('publishResult').innerText = 'Network error';
-        console.error(err);
-    }
+    const topic = `tcc_project/${device}/gpio/${gpio}/set`;
+
+    client.publish(topic, cmd);
+
+    document.getElementById('publishResult').innerText =
+        `Enviado ${cmd} → ${topic}`;
 }
+
+document.getElementById('btnOn').addEventListener('click', () => publishCommand('1'));
+document.getElementById('btnOff').addEventListener('click', () => publishCommand('0'));
 
 </script>
 
