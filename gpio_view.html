@@ -22,14 +22,27 @@ body{
 }
 
 button{
-    padding:10px;
+    padding:8px;
     margin:5px;
     width:80px;
 }
 
-.on { background-color: #4CAF50; color:white; }
-.off { background-color: #f44336; color:white; }
+.on {
+    background-color: green;
+    color:white;
+    padding:5px;
+    border-radius:5px;
+}
+
+.off {
+    background-color: red;
+    color:white;
+    padding:5px;
+    border-radius:5px;
+}
+
 </style>
+
 </head>
 
 <body>
@@ -45,13 +58,9 @@ button{
 <h2>🔘 OUTPUT CONTROL</h2>
 <div id="outputs"></div>
 
-<p id="status"></p>
+<p id="status">Waiting...</p>
 
 <script>
-
-// ================= CONFIG =================
-const inputPins = [34,35,39];
-const outputPins = [2,4,16,17];
 
 // ================= MQTT =================
 const client = mqtt.connect(
@@ -65,15 +74,17 @@ const client = mqtt.connect(
 
 client.on("connect", () => {
     console.log("MQTT conectado");
-    document.getElementById("status").innerText = "MQTT conectado";
 });
 
 client.on("error", (err) => {
     console.error(err);
-    document.getElementById("status").innerText = "Erro MQTT";
 });
 
-// ================= UI =================
+// ================= CONFIG =================
+const inputPins = [34,35,39];
+const outputPins = [2,4,16,17];
+
+// ================= RENDER =================
 function renderUI(){
 
     const inputsDiv = document.getElementById("inputs");
@@ -82,60 +93,82 @@ function renderUI(){
     inputsDiv.innerHTML = "";
     outputsDiv.innerHTML = "";
 
+    // INPUTS
     inputPins.forEach(pin=>{
         inputsDiv.innerHTML += `
         <div class="card">
             <h3>GPIO ${pin}</h3>
-            <p id="state_${pin}">...</p>
+            <p id="in_state_${pin}" class="off">...</p>
         </div>`;
     });
 
+    // OUTPUTS
     outputPins.forEach(pin=>{
         outputsDiv.innerHTML += `
         <div class="card">
             <h3>GPIO ${pin}</h3>
+            <p id="out_state_${pin}" class="off">...</p>
             <button onclick="send(${pin},1)">ON</button>
             <button onclick="send(${pin},0)">OFF</button>
         </div>`;
     });
 }
 
-// ================= MQTT SEND =================
+// ================= SEND MQTT =================
 function send(pin, cmd){
 
     const device = document.getElementById('device_id').value;
-
     const topic = `tcc_project/${device}/gpio/${pin}/set`;
 
     client.publish(topic, String(cmd));
 
-    document.getElementById("status").innerText =
-        `Enviado ${cmd} → GPIO ${pin}`;
+    console.log("Enviado:", topic, cmd);
 }
 
-// ================= HTTP FETCH =================
+// ================= FETCH INPUT + OUTPUT =================
 async function fetchState(){
 
     const device = document.getElementById("device_id").value;
 
-    for(let pin of inputPins){
+    try{
 
-        const url = `http://br76.teste.website/~steph999/api/populate.php?device_id=${device}&gpio_id=${pin}`;
+        // INPUTS
+        for(let pin of inputPins){
 
-        try{
+            const url = `http://br76.teste.website/~steph999/api/populate.php?device_id=${device}&gpio_id=${pin}`;
+
             const res = await fetch(url);
             const data = await res.json();
 
-            const el = document.getElementById(`state_${pin}`);
-
             if(data.state !== undefined){
-                el.innerText = data.state;
+
+                const el = document.getElementById(`in_state_${pin}`);
+
+                el.innerText = data.state == 1 ? "ON" : "OFF";
                 el.className = data.state == 1 ? "on" : "off";
             }
-
-        }catch(e){
-            console.log(e);
         }
+
+        // OUTPUTS (🔥 NOVO)
+        for(let pin of outputPins){
+
+            const url = `http://br76.teste.website/~steph999/api/populate.php?device_id=${device}&gpio_id=${pin}`;
+
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if(data.state !== undefined){
+
+                const el = document.getElementById(`out_state_${pin}`);
+
+                el.innerText = data.state == 1 ? "ON" : "OFF";
+                el.className = data.state == 1 ? "on" : "off";
+            }
+        }
+
+    }catch(err){
+        console.error(err);
+        document.getElementById("status").innerText = "Erro HTTP";
     }
 }
 
