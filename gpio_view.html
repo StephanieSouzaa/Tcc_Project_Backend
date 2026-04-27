@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <title>GPIO Dashboard</title>
 
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
 <style>
 body{
     font-family: Arial;
@@ -19,55 +21,75 @@ body{
     width:200px;
 }
 
-.on { background-color: #4CAF50; color:white; }
-.off { background-color: #f44336; color:white; }
-
 button{
     padding:10px;
     margin:5px;
     width:80px;
 }
+
+.on { background-color: #4CAF50; color:white; }
+.off { background-color: #f44336; color:white; }
 </style>
 </head>
 
 <body>
 
-<h2>📟 INPUT STATUS</h2>
+<h2>GPIO Dashboard</h2>
 
+<label>Device ID:</label>
+<input type="text" id="device_id" value="device1">
+
+<h2>📟 INPUT STATUS</h2>
 <div id="inputs"></div>
 
 <h2>🔘 OUTPUT CONTROL</h2>
-
 <div id="outputs"></div>
 
-<p id="log"></p>
+<p id="status"></p>
 
 <script>
 
-const device = "device1";
-
-// ================= INPUTS =================
+// ================= CONFIG =================
 const inputPins = [34,35,39];
-
-// ================= OUTPUTS =================
 const outputPins = [2,4,16,17];
 
-// ================= RENDER =================
+// ================= MQTT =================
+const client = mqtt.connect(
+    "wss://92ca7f6444f944cbae30908602073cd5.s1.eu.hivemq.cloud:8884/mqtt",
+    {
+        username: "Steph",
+        password: "Steph123",
+        reconnectPeriod: 2000
+    }
+);
+
+client.on("connect", () => {
+    console.log("MQTT conectado");
+    document.getElementById("status").innerText = "MQTT conectado";
+});
+
+client.on("error", (err) => {
+    console.error(err);
+    document.getElementById("status").innerText = "Erro MQTT";
+});
+
+// ================= UI =================
 function renderUI(){
 
     const inputsDiv = document.getElementById("inputs");
     const outputsDiv = document.getElementById("outputs");
 
-    // Inputs
+    inputsDiv.innerHTML = "";
+    outputsDiv.innerHTML = "";
+
     inputPins.forEach(pin=>{
         inputsDiv.innerHTML += `
-        <div class="card" id="in_${pin}">
+        <div class="card">
             <h3>GPIO ${pin}</h3>
             <p id="state_${pin}">...</p>
         </div>`;
     });
 
-    // Outputs
     outputPins.forEach(pin=>{
         outputsDiv.innerHTML += `
         <div class="card">
@@ -78,8 +100,23 @@ function renderUI(){
     });
 }
 
-// ================= FETCH STATUS =================
+// ================= MQTT SEND =================
+function send(pin, cmd){
+
+    const device = document.getElementById('device_id').value;
+
+    const topic = `tcc_project/${device}/gpio/${pin}/set`;
+
+    client.publish(topic, String(cmd));
+
+    document.getElementById("status").innerText =
+        `Enviado ${cmd} → GPIO ${pin}`;
+}
+
+// ================= HTTP FETCH =================
 async function fetchState(){
+
+    const device = document.getElementById("device_id").value;
 
     for(let pin of inputPins){
 
@@ -89,43 +126,16 @@ async function fetchState(){
             const res = await fetch(url);
             const data = await res.json();
 
+            const el = document.getElementById(`state_${pin}`);
+
             if(data.state !== undefined){
-
-                const el = document.getElementById(`state_${pin}`);
                 el.innerText = data.state;
-
                 el.className = data.state == 1 ? "on" : "off";
             }
 
         }catch(e){
             console.log(e);
         }
-    }
-}
-
-// ================= SEND MQTT =================
-async function send(pin, cmd){
-
-    const url = `http://br76.teste.website/~steph999/api/publish_mqtt.php`;
-
-    try{
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: new URLSearchParams({
-                device_id: device,
-                gpio_id: pin,
-                command: cmd
-            })
-        });
-
-        const data = await res.json();
-
-        document.getElementById("log").innerText =
-            "Sent to " + data.topic;
-
-    }catch(e){
-        document.getElementById("log").innerText = "Erro";
     }
 }
 
