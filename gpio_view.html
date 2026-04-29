@@ -41,6 +41,10 @@ button{
     border-radius:5px;
 }
 
+select{
+    width:180px;
+    height:120px;
+}
 </style>
 
 </head>
@@ -52,11 +56,31 @@ button{
 <label>Device ID:</label>
 <input type="text" id="device_id" value="device1">
 
+<hr>
+
+<h3>⚙️ Configuração</h3>
+
+<div style="display:flex; justify-content:center; gap:40px;">
+    <div>
+        <h4>Saídas</h4>
+        <select id="outputs" multiple></select>
+    </div>
+
+    <div>
+        <h4>Entradas</h4>
+        <select id="inputs" multiple></select>
+    </div>
+</div>
+
+<button onclick="applyConfig()">Aplicar Configuração</button>
+
+<hr>
+
 <h2>📟 INPUT STATUS</h2>
-<div id="inputs"></div>
+<div id="inputs_view"></div>
 
 <h2>🔘 OUTPUT CONTROL</h2>
-<div id="outputs"></div>
+<div id="outputs_view"></div>
 
 <p id="status">Waiting...</p>
 
@@ -80,20 +104,88 @@ client.on("error", (err) => {
     console.error(err);
 });
 
-// ================= CONFIG =================
-const inputPins = [34,35,39];
-const outputPins = [2,4,16,17];
+// ================= GPIO LIST =================
+const ALL_GPIOS = [2,4,13,14,15,16,17,25,26,27,32,33,34,35,39];
+const INPUT_ONLY = [34,35,39];
+
+// ================= STATE =================
+let inputPins = [];
+let outputPins = [];
+
+// ================= POPULATE SELECT =================
+const outSel = document.getElementById("outputs");
+const inSel = document.getElementById("inputs");
+
+ALL_GPIOS.forEach(gpio => {
+
+    if(!INPUT_ONLY.includes(gpio)){
+        outSel.add(new Option("GPIO "+gpio, gpio));
+    }
+
+    inSel.add(new Option("GPIO "+gpio, gpio));
+});
+
+// ================= BLOQUEIO =================
+function syncSelections(){
+
+    const outs = [...outSel.selectedOptions].map(o=>o.value);
+    const ins = [...inSel.selectedOptions].map(o=>o.value);
+
+    [...outSel.options].forEach(o=>o.disabled=false);
+    [...inSel.options].forEach(o=>o.disabled=false);
+
+    ins.forEach(v=>{
+        let opt = [...outSel.options].find(o=>o.value==v);
+        if(opt) opt.disabled=true;
+    });
+
+    outs.forEach(v=>{
+        let opt = [...inSel.options].find(o=>o.value==v);
+        if(opt) opt.disabled=true;
+    });
+
+    INPUT_ONLY.forEach(g=>{
+        let opt = [...outSel.options].find(o=>o.value==g);
+        if(opt) opt.disabled=true;
+    });
+}
+
+outSel.addEventListener("change", syncSelections);
+inSel.addEventListener("change", syncSelections);
+
+// ================= APPLY CONFIG =================
+function applyConfig(){
+
+    inputPins = [...inSel.selectedOptions].map(o=>Number(o.value));
+    outputPins = [...outSel.selectedOptions].map(o=>Number(o.value));
+
+    const device = document.getElementById("device_id").value;
+
+    const payload = {
+        inputs: inputPins,
+        outputs: outputPins
+    };
+
+    console.log("CONFIG:", payload);
+
+    // 🔥 ENVIO MQTT
+    client.publish(
+        `tcc_project/${device}/config`,
+        JSON.stringify(payload)
+    );
+
+    renderUI();
+}
 
 // ================= RENDER =================
 function renderUI(){
 
-    const inputsDiv = document.getElementById("inputs");
-    const outputsDiv = document.getElementById("outputs");
+    const inputsDiv = document.getElementById("inputs_view");
+    const outputsDiv = document.getElementById("outputs_view");
 
     inputsDiv.innerHTML = "";
     outputsDiv.innerHTML = "";
 
-    // INPUTS
     inputPins.forEach(pin=>{
         inputsDiv.innerHTML += `
         <div class="card">
@@ -102,7 +194,6 @@ function renderUI(){
         </div>`;
     });
 
-    // OUTPUTS
     outputPins.forEach(pin=>{
         outputsDiv.innerHTML += `
         <div class="card">
@@ -114,7 +205,7 @@ function renderUI(){
     });
 }
 
-// ================= SEND MQTT =================
+// ================= SEND =================
 function send(pin, cmd){
 
     const device = document.getElementById('device_id').value;
@@ -125,14 +216,13 @@ function send(pin, cmd){
     console.log("Enviado:", topic, cmd);
 }
 
-// ================= FETCH INPUT + OUTPUT =================
+// ================= FETCH =================
 async function fetchState(){
 
     const device = document.getElementById("device_id").value;
 
     try{
 
-        // INPUTS
         for(let pin of inputPins){
 
             const url = `http://br76.teste.website/~steph999/api/populate.php?device_id=${device}&gpio_id=${pin}`;
@@ -149,7 +239,6 @@ async function fetchState(){
             }
         }
 
-        // OUTPUTS (🔥 NOVO)
         for(let pin of outputPins){
 
             const url = `http://br76.teste.website/~steph999/api/populate.php?device_id=${device}&gpio_id=${pin}`;
@@ -172,8 +261,7 @@ async function fetchState(){
     }
 }
 
-// ================= INIT =================
-renderUI();
+// ================= LOOP =================
 setInterval(fetchState, 3000);
 
 </script>
