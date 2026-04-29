@@ -43,8 +43,13 @@ button{
 
 select{
     width:180px;
-    height:120px;
+    height:140px;
 }
+
+select option:disabled{
+    color:#aaa;
+}
+
 </style>
 
 </head>
@@ -112,10 +117,11 @@ const INPUT_ONLY = [34,35,39];
 let inputPins = [];
 let outputPins = [];
 
-// ================= POPULATE SELECT =================
+// ================= SELECT ELEMENTS =================
 const outSel = document.getElementById("outputs");
 const inSel = document.getElementById("inputs");
 
+// ================= POPULATE =================
 ALL_GPIOS.forEach(gpio => {
 
     if(!INPUT_ONLY.includes(gpio)){
@@ -123,6 +129,27 @@ ALL_GPIOS.forEach(gpio => {
     }
 
     inSel.add(new Option("GPIO "+gpio, gpio));
+});
+
+// ================= MULTI SELECT SEM CTRL =================
+function toggleOption(select, value){
+    const option = [...select.options].find(o => o.value == value);
+
+    if(!option || option.disabled) return;
+
+    option.selected = !option.selected;
+
+    syncSelections();
+}
+
+outSel.addEventListener("mousedown", function(e){
+    e.preventDefault();
+    toggleOption(outSel, e.target.value);
+});
+
+inSel.addEventListener("mousedown", function(e){
+    e.preventDefault();
+    toggleOption(inSel, e.target.value);
 });
 
 // ================= BLOQUEIO =================
@@ -134,24 +161,24 @@ function syncSelections(){
     [...outSel.options].forEach(o=>o.disabled=false);
     [...inSel.options].forEach(o=>o.disabled=false);
 
+    // conflito input -> output
     ins.forEach(v=>{
         let opt = [...outSel.options].find(o=>o.value==v);
         if(opt) opt.disabled=true;
     });
 
+    // conflito output -> input
     outs.forEach(v=>{
         let opt = [...inSel.options].find(o=>o.value==v);
         if(opt) opt.disabled=true;
     });
 
+    // somente entrada
     INPUT_ONLY.forEach(g=>{
         let opt = [...outSel.options].find(o=>o.value==g);
         if(opt) opt.disabled=true;
     });
 }
-
-outSel.addEventListener("change", syncSelections);
-inSel.addEventListener("change", syncSelections);
 
 // ================= APPLY CONFIG =================
 function applyConfig(){
@@ -205,7 +232,7 @@ function renderUI(){
     });
 }
 
-// ================= SEND =================
+// ================= SEND MQTT =================
 function send(pin, cmd){
 
     const device = document.getElementById('device_id').value;
@@ -216,7 +243,7 @@ function send(pin, cmd){
     console.log("Enviado:", topic, cmd);
 }
 
-// ================= FETCH =================
+// ================= FETCH HTTP =================
 async function fetchState(){
 
     const device = document.getElementById("device_id").value;
