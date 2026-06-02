@@ -236,27 +236,22 @@ function renderUI(){
 function send(pin, cmd){
 
     const device = document.getElementById('device_id').value;
+
     const topic = `tcc_project/${device}/gpio/${pin}/set`;
 
-    // enviar via backend para obter message_id sequencial e registro
-    fetch(`http://br76.teste.website/~steph999/api/publish_mqtt.php`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `device_id=${encodeURIComponent(device)}&gpio_id=${encodeURIComponent(pin)}&command=${encodeURIComponent(cmd)}`
-    }).then(r=>r.json()).then(data=>{
-        console.log('Publish response:', data);
-        if (data && data.message_id) {
-            console.log('Assigned message_id:', data.message_id);
-        }
-    }).catch(err=>{
-        console.error('Publish error', err);
-        // como fallback, gerar um id local e publicar direto do cliente
-        const fallback_id = `local-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
-        client.publish(topic, JSON.stringify({command: String(cmd), message_id: fallback_id}));
-        console.log('Fallback publish with id', fallback_id);
-    });
+    const payload = {
+        command: String(cmd),
+        message_id: crypto.randomUUID()
+    };
 
-    console.log("Enviado:", topic, cmd);
+    client.publish(
+        topic,
+        JSON.stringify(payload)
+    );
+
+    console.log("MQTT ENVIADO");
+    console.log("TOPIC:", topic);
+    console.log("PAYLOAD:", payload);
 }
 
 // ================= FETCH HTTP =================
