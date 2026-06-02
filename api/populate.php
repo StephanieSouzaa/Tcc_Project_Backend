@@ -22,6 +22,12 @@ $tableQuery = "CREATE TABLE IF NOT EXISTS gpio_states (
 )";
 $conn->query($tableQuery);
 
+// garantir coluna message_id
+$checkMsgCol = $conn->query("SHOW COLUMNS FROM gpio_states LIKE 'message_id'");
+if ($checkMsgCol->num_rows == 0) {
+    $conn->query("ALTER TABLE gpio_states ADD COLUMN message_id VARCHAR(255) DEFAULT NULL");
+}
+
 // === CHECK AND ADD SERVER_TIMESTAMP COLUMN ===
 $checkColumn = $conn->query("SHOW COLUMNS FROM gpio_states LIKE 'server_timestamp'");
 if ($checkColumn->num_rows == 0) {
@@ -37,10 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    $message_id = isset($_POST['message_id']) ? $_POST['message_id'] : null;
+
     $stmt = $conn->prepare(
-        "INSERT INTO gpio_states (timestamp, device_id, gpio_id, state) VALUES (?, ?, ?, ?)"
+        "INSERT INTO gpio_states (timestamp, device_id, gpio_id, state, message_id) VALUES (?, ?, ?, ?, ?)"
     );
-    $stmt->bind_param("ssii", $_POST['timestamp'], $_POST['device_id'], $_POST['gpio_id'], $_POST['state']);
+    $stmt->bind_param("ssiis", $_POST['timestamp'], $_POST['device_id'], $_POST['gpio_id'], $_POST['state'], $message_id);
 
     if ($stmt->execute()) {
         echo json_encode([
