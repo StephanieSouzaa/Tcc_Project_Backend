@@ -239,11 +239,7 @@ function send(pin, cmd){
 
     const topic = `tcc_project/${device}/gpio/${pin}/set`;
 
-    const message_id =
-        'msg-' +
-        Date.now() +
-        '-' +
-        Math.random().toString(36).substring(2,10);
+    const message_id = Date.now().toString();
 
     const payload = {
         command: String(cmd),
