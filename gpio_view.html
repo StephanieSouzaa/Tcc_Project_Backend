@@ -239,11 +239,11 @@ function send(pin, cmd){
 
     const topic = `tcc_project/${device}/gpio/${pin}/set`;
 
-    const message_id = Date.now().toString();
+    msg_counter++;
 
     const payload = {
         command: String(cmd),
-        message_id: message_id
+        message_id: msg_counter.toString()
     };
 
     client.publish(
