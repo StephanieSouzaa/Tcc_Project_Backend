@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Stress Test MQTT</title>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<style>
+body{
+    font-family: Arial;
+    padding: 30px;
+}
+
+input{
+    padding: 5px;
+    margin: 5px;
+}
+
+button{
+    padding: 10px;
+    margin: 5px;
+}
+
+#log{
+    margin-top:20px;
+    border:1px solid #ccc;
+    padding:10px;
+    height:400px;
+    overflow:auto;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Stress Test MQTT</h2>
+
+<p>
+Device:
+<input id="device" value="device1">
+</p>
+
+<p>
+GPIO:
+<input id="gpio" value="14">
+</p>
+
+<p>
+Quantidade:
+<input id="total" value="100">
+</p>
+
+<p>
+Delay (ms):
+<input id="delay" value="10">
+</p>
+
+<button onclick="startTest()">
+Iniciar Teste
+</button>
+
+<div id="log"></div>
+
+<script>
+
+console.log("SCRIPT CARREGADO");
+
+const logDiv = document.getElementById("log");
+
+function log(msg)
+{
+    logDiv.innerHTML += msg + "<br>";
+    logDiv.scrollTop = logDiv.scrollHeight;
+    console.log(msg);
+}
+
+const client = mqtt.connect(
+    "wss://92ca7f6444f944cbae30908602073cd5.s1.eu.hivemq.cloud:8884/mqtt",
+    {
+        username: "Steph",
+        password: "Steph123",
+        reconnectPeriod: 2000
+    }
+);
+
+client.on("connect", () =>
+{
+    log("MQTT CONECTADO");
+});
+
+client.on("error", (err) =>
+{
+    log("ERRO MQTT:");
+    console.error(err);
+});
+
+async function startTest()
+{
+    const device =
+        document.getElementById("device").value;
+
+    const gpio =
+        document.getElementById("gpio").value;
+
+    const total =
+        parseInt(document.getElementById("total").value);
+
+    const delay =
+        parseInt(document.getElementById("delay").value);
+
+    const topic =
+        `tcc_project/${device}/gpio/${gpio}/set`;
+
+    log("=================================");
+    log("INICIANDO TESTE");
+    log("TOPIC: " + topic);
+    log("TOTAL: " + total);
+
+    for(let i = 1; i <= total; i++)
+    {
+        const payload = {
+            command: String(i % 2),
+            message_id: String(i)
+        };
+
+        client.publish(
+            topic,
+            JSON.stringify(payload)
+        );
+
+        if(i % 10 === 0)
+        {
+            log("ENVIADAS: " + i);
+        }
+
+        await new Promise(
+            r => setTimeout(r, delay)
+        );
+    }
+
+    log("TESTE FINALIZADO");
+}
+
+</script>
+
+</body>
+</html>
