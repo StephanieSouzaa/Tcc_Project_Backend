@@ -42,8 +42,10 @@ Device:
 </p>
 
 <p>
-GPIO:
-<input id="gpio" value="14">
+GPIO 1:
+<input id="gpio1" value="14">
+GPIO 2:
+<input id="gpio2" value="12">
 </p>
 
 <p>
@@ -100,8 +102,11 @@ async function startTest()
     const device =
         document.getElementById("device").value;
 
-    const gpio =
-        document.getElementById("gpio").value;
+    const gpio1 =
+        document.getElementById("gpio1").value;
+
+    const gpio2 =
+        document.getElementById("gpio2").value;
 
     const total =
         parseInt(document.getElementById("total").value);
@@ -109,12 +114,13 @@ async function startTest()
     const delay =
         parseInt(document.getElementById("delay").value);
 
-    const topic =
-        `tcc_project/${device}/gpio/${gpio}/set`;
+    const topic1 = `tcc_project/${device}/gpio/${gpio1}/set`;
+    const topic2 = `tcc_project/${device}/gpio/${gpio2}/set`;
 
     log("=================================");
     log("INICIANDO TESTE");
-    log("TOPIC: " + topic);
+    log("TOPIC 1: " + topic1);
+    log("TOPIC 2: " + topic2);
     log("TOTAL: " + total);
 
     for(let i = 1; i <= total; i++)
@@ -124,10 +130,8 @@ async function startTest()
             message_id: String(i)
         };
 
-        client.publish(
-            topic,
-            JSON.stringify(payload)
-        );
+        client.publish(topic1, JSON.stringify(payload));
+        client.publish(topic2, JSON.stringify(payload));
 
         if(i % 10 === 0)
         {
