@@ -24,6 +24,10 @@ body{
 button{
     padding:8px;
     margin:5px;
+    width:auto;
+}
+
+.small{
     width:80px;
 }
 
@@ -224,12 +228,12 @@ function renderUI(){
 
     outputPins.forEach(pin=>{
         outputsDiv.innerHTML += `
-        <div class="card">
-            <h3>GPIO ${pin}</h3>
-            <p id="out_state_${pin}" class="off">...</p>
-            <button onclick="send(${pin},1)">ON</button>
-            <button onclick="send(${pin},0)">OFF</button>
-        </div>`;
+            <div class="card">
+                <h3>GPIO ${pin}</h3>
+                <p id="out_state_${pin}" class="off">...</p>
+                <button class="small" onclick="send(${pin},1)">ON</button>
+                <button class="small" onclick="send(${pin},0)">OFF</button>
+            </div>`;
     });
 }
 
